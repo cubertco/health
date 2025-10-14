@@ -1477,7 +1477,7 @@ class Health {
     HealthDataType.HEADACHE_SEVERE => 4,
     _ => throw HealthException(
       type,
-      "HealthDataType was not aligned correctly - please report bug at https://github.com/cph-cachet/flutter-plugins/issues",
+      "HealthDataType was not aligned correctly - please report bug at https://github.com/carp-dk/carp-health-flutter/issues",
     ),
   };
 

@@ -1,3 +1,6 @@
+## 13.2.1
+No changes - Now the [Health](https://pub.dev/packages/health) package lives in its own repository
+
 ## 13.2.0
 
 * Add get health data by UUID (see `getHealthDataByUUID()`) - PR [#1193](https://github.com/carp-dk/flutter-plugins/pull/1193), [#1194](https://github.com/carp-dk/flutter-plugins/pull/1194)
