@@ -10,6 +10,7 @@ The plugin supports:
 - reading health data using the `getHealthDataFromTypes` method.
 - writing health data using the `writeHealthData` method.
 - writing workouts using the `writeWorkout` method.
+- writing workout routes on iOS using the `startWorkoutRoute` / `insertWorkoutRouteData` / `finishWorkoutRoute` methods.
 - writing meals on iOS (Apple Health) & Android using the `writeMeal` method.
 - writing audiograms on iOS using the `writeAudiogram` method.
 - writing blood pressure data using the `writeBloodPressure` method.
@@ -204,6 +205,14 @@ Below is a simplified flow of how to use the plugin.
   var midnight = DateTime(now.year, now.month, now.day);
   int? steps = await health.getTotalStepsInInterval(midnight, now);
 ```
+
+### Writing workout routes (iOS)
+
+1. Request share/read permissions for both `HealthDataType.WORKOUT` and `HealthDataType.WORKOUT_ROUTE`, and ensure Core Location permissions are granted.
+2. When the workout session starts, open a builder with `final builderId = await health.startWorkoutRoute();`.
+3. Collect GPS samples using `CLLocationManager` (or an equivalent service) and periodically push ordered batches of `WorkoutRouteLocation` values via `insertWorkoutRouteData`.
+4. Save the workout itself (for example, with `writeWorkoutData`) and capture the resulting HealthKit workout UUID.
+5. Call `finishWorkoutRoute(builderId: builderId, workoutUuid: workoutUuid, metadata: {...})` to commit the route, or `discardWorkoutRoute(builderId)` if the session is cancelled.
 
 ### Health Data
 
@@ -419,6 +428,7 @@ The plugin supports the following [`HealthDataType`](https://pub.dev/documentati
 | WATER                        | LITER                   | yes              | yes                       |                                                                                                                                    |
 | EXERCISE_TIME                | MINUTES                 | yes              |                           |                                                                                                                                    |
 | WORKOUT                      | NO_UNIT                 | yes              | yes                       | See table below                                                                                                                    |
+| WORKOUT_ROUTE                | NO_UNIT                 | yes              |                           | iOS 11+. Read/write via workout route builder APIs; not available on Google Health Connect.                                        |
 | HIGH_HEART_RATE_EVENT        | NO_UNIT                 | yes              |                           | Requires Apple Watch to write the data                                                                                             |
 | LOW_HEART_RATE_EVENT         | NO_UNIT                 | yes              |                           | Requires Apple Watch to write the data                                                                                             |
 | IRREGULAR_HEART_RATE_EVENT   | NO_UNIT                 | yes              |                           | Requires Apple Watch to write the data                                                                                             |

@@ -90,6 +90,7 @@ enum HealthDataType {
   SLEEP_UNKNOWN,
   EXERCISE_TIME,
   WORKOUT,
+  WORKOUT_ROUTE,
   HEADACHE_NOT_PRESENT,
   HEADACHE_MILD,
   HEADACHE_MODERATE,
@@ -209,6 +210,7 @@ const List<HealthDataType> dataTypeKeysIOS = [
   HealthDataType.WATER,
   HealthDataType.EXERCISE_TIME,
   HealthDataType.WORKOUT,
+  HealthDataType.WORKOUT_ROUTE,
   HealthDataType.HEADACHE_NOT_PRESENT,
   HealthDataType.HEADACHE_MILD,
   HealthDataType.HEADACHE_MODERATE,
@@ -357,6 +359,7 @@ const Map<HealthDataType, HealthDataUnit> dataTypeToUnit = {
   HealthDataType.MINDFULNESS: HealthDataUnit.MINUTE,
   HealthDataType.EXERCISE_TIME: HealthDataUnit.MINUTE,
   HealthDataType.WORKOUT: HealthDataUnit.NO_UNIT,
+  HealthDataType.WORKOUT_ROUTE: HealthDataUnit.NO_UNIT,
 
   HealthDataType.HEADACHE_NOT_PRESENT: HealthDataUnit.MINUTE,
   HealthDataType.HEADACHE_MILD: HealthDataUnit.MINUTE,
@@ -618,13 +621,13 @@ enum InsulinDeliveryReason {
 extension ElectrocardiogramClassificationValue
     on ElectrocardiogramClassification {
   int get value => switch (this) {
-        ElectrocardiogramClassification.NOT_SET => 0,
-        ElectrocardiogramClassification.SINUS_RHYTHM => 1,
-        ElectrocardiogramClassification.ATRIAL_FIBRILLATION => 2,
-        ElectrocardiogramClassification.INCONCLUSIVE_LOW_HEART_RATE => 3,
-        ElectrocardiogramClassification.INCONCLUSIVE_HIGH_HEART_RATE => 4,
-        ElectrocardiogramClassification.INCONCLUSIVE_POOR_READING => 5,
-        ElectrocardiogramClassification.INCONCLUSIVE_OTHER => 6,
-        ElectrocardiogramClassification.UNRECOGNIZED => 100,
-      };
+    ElectrocardiogramClassification.NOT_SET => 0,
+    ElectrocardiogramClassification.SINUS_RHYTHM => 1,
+    ElectrocardiogramClassification.ATRIAL_FIBRILLATION => 2,
+    ElectrocardiogramClassification.INCONCLUSIVE_LOW_HEART_RATE => 3,
+    ElectrocardiogramClassification.INCONCLUSIVE_HIGH_HEART_RATE => 4,
+    ElectrocardiogramClassification.INCONCLUSIVE_POOR_READING => 5,
+    ElectrocardiogramClassification.INCONCLUSIVE_OTHER => 6,
+    ElectrocardiogramClassification.UNRECOGNIZED => 100,
+  };
 }

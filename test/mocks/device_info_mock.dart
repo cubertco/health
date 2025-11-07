@@ -48,6 +48,10 @@ class MockDeviceInfoPlugin extends Mock implements DeviceInfoPlugin {
           'localizedModel': 'mock-ios-localizedModel',
           'identifierForVendor': 'mock-ios-id',
           'isPhysicalDevice': true,
+          'freeDiskSize': 128000000000,
+          'totalDiskSize': 256000000000,
+          'physicalRamSize': 8192,
+          'availableRamSize': 4096,
           'isiOSAppOnMac': false,
           'utsname': {
             'sysname': 'mock-ios-sysname',

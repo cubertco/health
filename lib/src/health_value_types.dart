@@ -217,14 +217,154 @@ class WorkoutHealthValue extends HealthValue {
 
   @override
   int get hashCode => Object.hash(
-    workoutActivityType,
-    totalEnergyBurned,
-    totalEnergyBurnedUnit,
-    totalDistance,
-    totalDistanceUnit,
-    totalSteps,
-    totalStepsUnit,
-  );
+        workoutActivityType,
+        totalEnergyBurned,
+        totalEnergyBurnedUnit,
+        totalDistance,
+        totalDistanceUnit,
+        totalSteps,
+        totalStepsUnit,
+      );
+}
+
+/// A single location sample captured as part of a workout route.
+///
+/// Parameters:
+/// * [latitude] & [longitude] - required geographic coordinates in degrees.
+/// * [timestamp] - when the location sample was recorded.
+/// * [altitude] - optional altitude above sea level in meters.
+/// * [horizontalAccuracy] / [verticalAccuracy] - optional accuracy in meters.
+/// * [speed] - optional instantaneous speed in meters/second.
+/// * [course] - optional bearing (heading) in degrees.
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
+class WorkoutRouteLocation extends Serializable {
+  double latitude;
+  double longitude;
+  DateTime timestamp;
+  double? altitude;
+  double? horizontalAccuracy;
+  double? verticalAccuracy;
+  double? speed;
+  double? course;
+  double? speedAccuracy;
+  double? courseAccuracy;
+
+  WorkoutRouteLocation({
+    required this.latitude,
+    required this.longitude,
+    required this.timestamp,
+    this.altitude,
+    this.horizontalAccuracy,
+    this.verticalAccuracy,
+    this.speed,
+    this.course,
+    this.speedAccuracy,
+    this.courseAccuracy,
+  });
+
+  factory WorkoutRouteLocation.fromHealthDataPoint(
+    Map<String, dynamic> data,
+  ) =>
+      WorkoutRouteLocation(
+        latitude: (data['latitude'] as num).toDouble(),
+        longitude: (data['longitude'] as num).toDouble(),
+        timestamp: _timestampFrom(data),
+        altitude: _nullableDouble(data['altitude']),
+        horizontalAccuracy: _nullableDouble(data['horizontalAccuracy']),
+        verticalAccuracy: _nullableDouble(data['verticalAccuracy']),
+        speed: _nullableDouble(data['speed']),
+        course: _nullableDouble(data['course']),
+        speedAccuracy: _nullableDouble(data['speedAccuracy']),
+        courseAccuracy: _nullableDouble(data['courseAccuracy']),
+      );
+
+  static DateTime _timestampFrom(Map<String, dynamic> data) =>
+      DateTime.fromMillisecondsSinceEpoch(
+        (data['timestamp'] as num).toInt(),
+        isUtc: true,
+      ).toLocal();
+
+  static double? _nullableDouble(dynamic value) =>
+      value == null ? null : (value as num).toDouble();
+
+  @override
+  Function get fromJsonFunction => _$WorkoutRouteLocationFromJson;
+  factory WorkoutRouteLocation.fromJson(Map<String, dynamic> json) =>
+      FromJsonFactory().fromJson<WorkoutRouteLocation>(json);
+  @override
+  Map<String, dynamic> toJson() => _$WorkoutRouteLocationToJson(this);
+
+  @override
+  bool operator ==(Object other) =>
+      other is WorkoutRouteLocation &&
+      latitude == other.latitude &&
+      longitude == other.longitude &&
+      timestamp == other.timestamp &&
+      altitude == other.altitude &&
+      horizontalAccuracy == other.horizontalAccuracy &&
+      verticalAccuracy == other.verticalAccuracy &&
+      speed == other.speed &&
+      course == other.course &&
+      speedAccuracy == other.speedAccuracy &&
+      courseAccuracy == other.courseAccuracy;
+
+  @override
+  int get hashCode => Object.hash(
+        latitude,
+        longitude,
+        timestamp,
+        altitude,
+        horizontalAccuracy,
+        verticalAccuracy,
+        speed,
+        course,
+        speedAccuracy,
+        courseAccuracy,
+      );
+}
+
+/// Route data captured for a workout session.
+///
+/// Parameters:
+/// * [locations] - ordered list of [WorkoutRouteLocation] samples.
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
+class WorkoutRouteHealthValue extends HealthValue {
+  List<WorkoutRouteLocation> locations;
+  String? workoutUuid;
+
+  WorkoutRouteHealthValue({required this.locations, this.workoutUuid});
+
+  factory WorkoutRouteHealthValue.fromHealthDataPoint(dynamic dataPoint) {
+    final rawRoute = (dataPoint['route'] as List<dynamic>? ?? [])
+        .map((entry) => Map<String, dynamic>.from(entry as Map))
+        .toList();
+
+    return WorkoutRouteHealthValue(
+      locations:
+          rawRoute.map(WorkoutRouteLocation.fromHealthDataPoint).toList(),
+      workoutUuid: dataPoint['workout_uuid'] as String?,
+    );
+  }
+
+  @override
+  Function get fromJsonFunction => _$WorkoutRouteHealthValueFromJson;
+  factory WorkoutRouteHealthValue.fromJson(Map<String, dynamic> json) =>
+      FromJsonFactory().fromJson<WorkoutRouteHealthValue>(json);
+  @override
+  Map<String, dynamic> toJson() => _$WorkoutRouteHealthValueToJson(this);
+
+  @override
+  String toString() =>
+      '$runtimeType - locations: ${locations.length} samples, workoutUuid: $workoutUuid';
+
+  @override
+  bool operator ==(Object other) =>
+      other is WorkoutRouteHealthValue &&
+      listEquals(locations, other.locations) &&
+      workoutUuid == other.workoutUuid;
+
+  @override
+  int get hashCode => Object.hash(Object.hashAll(locations), workoutUuid);
 }
 
 /// A [HealthValue] object for ECGs
@@ -290,11 +430,11 @@ class ElectrocardiogramHealthValue extends HealthValue {
 
   @override
   int get hashCode => Object.hash(
-    voltageValues,
-    averageHeartRate,
-    samplingFrequency,
-    classification,
-  );
+        voltageValues,
+        averageHeartRate,
+        samplingFrequency,
+        classification,
+      );
 
   @override
   String toString() =>
@@ -319,9 +459,9 @@ class ElectrocardiogramVoltageValue extends HealthValue {
   factory ElectrocardiogramVoltageValue.fromHealthDataPoint(
     dynamic dataPoint,
   ) => ElectrocardiogramVoltageValue(
-    voltage: dataPoint['voltage'] as num,
-    timeSinceSampleStart: dataPoint['timeSinceSampleStart'] as num,
-  );
+        voltage: dataPoint['voltage'] as num,
+        timeSinceSampleStart: dataPoint['timeSinceSampleStart'] as num,
+      );
 
   @override
   Function get fromJsonFunction => _$ElectrocardiogramVoltageValueFromJson;
@@ -362,8 +502,8 @@ class InsulinDeliveryHealthValue extends HealthValue {
         : Map<String, dynamic>.from(dataPoint['metadata'] as Map);
     final reasonIndex =
         metadata == null || !metadata.containsKey('HKInsulinDeliveryReason')
-        ? 0
-        : metadata['HKInsulinDeliveryReason'] as double;
+            ? 0
+            : metadata['HKInsulinDeliveryReason'] as double;
     final reason = InsulinDeliveryReason.values[reasonIndex.toInt()];
 
     return InsulinDeliveryHealthValue(units: units.toDouble(), reason: reason);
@@ -757,50 +897,50 @@ class NutritionHealthValue extends HealthValue {
 
   @override
   int get hashCode => Object.hashAll([
-    protein,
-    calories,
-    fat,
-    name,
-    carbs,
-    caffeine,
-    vitaminA,
-    b1Thiamine,
-    b2Riboflavin,
-    b3Niacin,
-    b5PantothenicAcid,
-    b6Pyridoxine,
-    b7Biotin,
-    b9Folate,
-    b12Cobalamin,
-    vitaminC,
-    vitaminD,
-    vitaminE,
-    vitaminK,
-    calcium,
-    chloride,
-    cholesterol,
-    choline,
-    chromium,
-    copper,
-    fatUnsaturated,
-    fatMonounsaturated,
-    fatPolyunsaturated,
-    fatSaturated,
-    fatTransMonoenoic,
-    fiber,
-    iodine,
-    iron,
-    magnesium,
-    manganese,
-    molybdenum,
-    phosphorus,
-    potassium,
-    selenium,
-    sodium,
-    sugar,
-    water,
-    zinc,
-  ]);
+        protein,
+        calories,
+        fat,
+        name,
+        carbs,
+        caffeine,
+        vitaminA,
+        b1Thiamine,
+        b2Riboflavin,
+        b3Niacin,
+        b5PantothenicAcid,
+        b6Pyridoxine,
+        b7Biotin,
+        b9Folate,
+        b12Cobalamin,
+        vitaminC,
+        vitaminD,
+        vitaminE,
+        vitaminK,
+        calcium,
+        chloride,
+        cholesterol,
+        choline,
+        chromium,
+        copper,
+        fatUnsaturated,
+        fatMonounsaturated,
+        fatPolyunsaturated,
+        fatSaturated,
+        fatTransMonoenoic,
+        fiber,
+        iodine,
+        iron,
+        magnesium,
+        manganese,
+        molybdenum,
+        phosphorus,
+        potassium,
+        selenium,
+        sodium,
+        sugar,
+        water,
+        zinc,
+      ]);
 }
 
 enum MenstrualFlow {
@@ -938,12 +1078,12 @@ class MenstruationFlowHealthValue extends HealthValue {
       flow: menstrualFlow,
       isStartOfCycle:
           dataPoint['metadata']?.containsKey('HKMenstrualCycleStart') == true
-          ? dataPoint['metadata']['HKMenstrualCycleStart'] == 1.0
-          : null,
+              ? dataPoint['metadata']['HKMenstrualCycleStart'] == 1.0
+              : null,
       wasUserEntered:
           dataPoint['metadata']?.containsKey('HKWasUserEntered') == true
-          ? dataPoint['metadata']['HKWasUserEntered'] == 1.0
-          : null,
+              ? dataPoint['metadata']['HKWasUserEntered'] == 1.0
+              : null,
       dateTime: DateTime.fromMillisecondsSinceEpoch(
         dataPoint['date_from'] as int,
       ),

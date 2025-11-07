@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health/health.dart';
@@ -7,8 +9,22 @@ import 'mocks/device_info_mock.dart';
 
 // Mock MethodChannel to simulate native responses
 class MockMethodChannel extends Mock implements MethodChannel {
+  String? lastMethod;
+  dynamic lastArguments;
+  final List<Map<String, dynamic>> recordedCalls = [];
+
+  void resetCapturedCalls() {
+    lastMethod = null;
+    lastArguments = null;
+    recordedCalls.clear();
+  }
+
   @override
   Future<T?> invokeMethod<T>(String method, [dynamic arguments]) async {
+    lastMethod = method;
+    lastArguments = arguments;
+    recordedCalls.add({'method': method, 'arguments': arguments});
+
     if (method == 'getData') {
       final dataTypeKey = (arguments as Map)['dataTypeKey'];
       switch (dataTypeKey) {
@@ -30,7 +46,7 @@ class MockMethodChannel extends Mock implements MethodChannel {
             }
           ] as T);
         case 'WORKOUT':
-          return Future.value(<Map<String, dynamic>>[
+           return Future.value(<Map<String, dynamic>>[
             {
               'uuid': 'test-uuid-2',
               'workoutActivityType': 'RUNNING',
@@ -52,30 +68,88 @@ class MockMethodChannel extends Mock implements MethodChannel {
               }
             }
           ] as T);
+        case 'WORKOUT_ROUTE':
+          return Future.value(
+            <Map<String, dynamic>>[
+                  {
+                    'uuid': 'test-route-uuid',
+                    'route': [
+                      {
+                        'latitude': 37.334900,
+                        'longitude': -122.009020,
+                        'timestamp': DateTime(2024, 9, 24, 12, 0).toUtc().millisecondsSinceEpoch,
+                        'horizontalAccuracy': 5.0,
+                        'verticalAccuracy': 8.0,
+                        'speed': 1.4,
+                        'course': 90.0,
+                        'speedAccuracy': 0.5,
+                        'courseAccuracy': 5.0,
+                      },
+                      {
+                        'latitude': 37.335280,
+                        'longitude': -122.008430,
+                        'timestamp': DateTime(2024, 9, 24, 12, 2).toUtc().millisecondsSinceEpoch,
+                        'horizontalAccuracy': 5.0,
+                        'verticalAccuracy': 8.0,
+                        'speed': 1.6,
+                        'course': 120.0,
+                      },
+                    ],
+                    'date_from': DateTime(2024, 9, 24, 12, 0).millisecondsSinceEpoch,
+                    'date_to': DateTime(2024, 9, 24, 12, 30).millisecondsSinceEpoch,
+                    'source_id': 'com.apple.Health',
+                    'source_name': 'Health',
+                    'recording_method': 2,
+                    'metadata': {
+                      'route_point_count': 2,
+                      'workout_uuid': 'test-workout-uuid',
+                    },
+                    'workout_uuid': 'test-workout-uuid',
+                  },
+                ]
+                as T,
+          );
         case 'NUTRITION':
           return Future.value(<Map<String, dynamic>>[
-            {
-              'uuid': 'test-uuid-3',
-              'name': 'Lunch',
-              'meal_type': 'LUNCH',
-              'calories': 500.0,
-              'carbs': 60.0,
-              'protein': 20.0,
-              'date_from': DateTime(2024, 9, 24, 13, 0).millisecondsSinceEpoch,
-              'date_to': DateTime(2024, 9, 24, 13, 30).millisecondsSinceEpoch,
-              'source_id': 'com.apple.Health',
-              'source_name': 'Health',
-              'recording_method': 2,
-              'metadata': {
-                'HKFoodMeal': 'LUNCH',
-                'array': [1, 'test', false, 'DateTime.now()'],
-              }
-            }
-          ] as T);
+                  {
+                    'uuid': 'test-uuid-3',
+                    'name': 'Lunch',
+                    'meal_type': 'LUNCH',
+                    'calories': 500.0,
+                    'carbs': 60.0,
+                    'protein': 20.0,
+                    'date_from': DateTime(2024, 9, 24, 13, 0).millisecondsSinceEpoch,
+                    'date_to': DateTime(2024, 9, 24, 13, 30).millisecondsSinceEpoch,
+                    'source_id': 'com.apple.Health',
+                    'source_name': 'Health',
+                    'recording_method': 2,
+                    'metadata': {
+                      'HKFoodMeal': 'LUNCH',
+                      'array': [1, 'test', false, 'DateTime.now()'],
+                    }
+                  }
+                ] as T);
         default:
           return Future.value(<Map<String, dynamic>>[] as T);
       }
     }
+
+    if (method == 'startWorkoutRoute') {
+      return Future.value('builder-123' as T);
+    }
+
+    if (method == 'insertWorkoutRouteData') {
+      return Future.value(true as T);
+    }
+
+    if (method == 'finishWorkoutRoute') {
+      return Future.value({'uuid': 'route-uuid-123'} as T);
+    }
+
+    if (method == 'discardWorkoutRoute') {
+      return Future.value(true as T);
+    }
+
     return Future.value(null);
   }
 }
@@ -169,6 +243,159 @@ void main() {
       expect(nutritionValue.calories, 500.0);
       expect(nutritionValue.carbs, 60.0);
       expect(nutritionValue.protein, 20.0);
+    });
+
+    test('Test sanitization with workout routes - WORKOUT_ROUTE', () async {
+      final dataPoints = await health.getHealthDataFromTypes(
+        types: [HealthDataType.WORKOUT_ROUTE],
+        startTime: DateTime(2024, 9, 24, 0, 0),
+        endTime: DateTime(2024, 9, 24, 23, 59),
+      );
+
+      expect(dataPoints.length, 1);
+      final hdp = dataPoints.first;
+      expect(hdp.type, HealthDataType.WORKOUT_ROUTE);
+      expect(hdp.metadata, {
+        'route_point_count': 2,
+        'workout_uuid': 'test-workout-uuid',
+      });
+      expect(hdp.value, isA<WorkoutRouteHealthValue>());
+
+      final routeValue = hdp.value as WorkoutRouteHealthValue;
+      expect(routeValue.locations.length, 2);
+      expect(routeValue.workoutUuid, 'test-workout-uuid');
+      final firstLocation = routeValue.locations.first;
+      expect(firstLocation.latitude, 37.3349);
+      expect(firstLocation.longitude, -122.00902);
+      expect(firstLocation.speedAccuracy, 0.5);
+      expect(firstLocation.courseAccuracy, 5.0);
+    });
+  });
+
+  group('Workout route APIs', () {
+    final health = Health(deviceInfo: MockDeviceInfoPlugin());
+
+    setUpAll(() async {
+      await health.configure();
+    });
+
+    test('startWorkoutRoute returns builder identifier', () async {
+      if (!Platform.isIOS) {
+        await expectLater(
+          () => health.startWorkoutRoute(),
+          throwsA(isA<UnsupportedError>()),
+        );
+        return;
+      }
+
+      final builderId = await health.startWorkoutRoute();
+      expect(builderId, 'builder-123');
+      expect(mockChannel.lastMethod, 'startWorkoutRoute');
+      expect(mockChannel.lastArguments, isNull);
+    });
+
+    test('insertWorkoutRouteData serializes locations correctly', () async {
+      if (!Platform.isIOS) {
+        await expectLater(
+          () => health.insertWorkoutRouteData(
+            builderId: 'builder-123',
+            locations: [
+              WorkoutRouteLocation(
+                latitude: 0,
+                longitude: 0,
+                timestamp: DateTime.now(),
+              ),
+            ],
+          ),
+          throwsA(isA<UnsupportedError>()),
+        );
+        return;
+      }
+
+      final builderId = 'builder-123';
+      final start = DateTime(2024, 9, 24, 12, 0).toLocal();
+      final locations = [
+        WorkoutRouteLocation(
+          latitude: 37.0,
+          longitude: -122.0,
+          timestamp: start,
+          altitude: 15,
+          horizontalAccuracy: 5,
+          verticalAccuracy: 8,
+          speed: 1.5,
+          course: 180,
+          speedAccuracy: 0.5,
+          courseAccuracy: 5,
+        ),
+      ];
+
+      final success = await health.insertWorkoutRouteData(
+        builderId: builderId,
+        locations: locations,
+      );
+
+      expect(success, isTrue);
+      expect(mockChannel.lastMethod, 'insertWorkoutRouteData');
+      final args = mockChannel.lastArguments as Map<String, dynamic>;
+      expect(args['builderId'], builderId);
+      expect(args['locations'], hasLength(1));
+      final serialized = args['locations'][0] as Map<String, dynamic>;
+      expect(serialized['latitude'], 37.0);
+      expect(serialized['longitude'], -122.0);
+      expect(serialized['altitude'], 15);
+      expect(serialized['horizontalAccuracy'], 5);
+      expect(serialized['verticalAccuracy'], 8);
+      expect(serialized['speed'], 1.5);
+      expect(serialized['course'], 180);
+      expect(serialized['speedAccuracy'], 0.5);
+      expect(serialized['courseAccuracy'], 5);
+      expect(serialized['timestamp'], start.toUtc().millisecondsSinceEpoch);
+    });
+
+    test('finishWorkoutRoute returns route uuid', () async {
+      if (!Platform.isIOS) {
+        await expectLater(
+          () => health.finishWorkoutRoute(
+            builderId: 'builder-123',
+            workoutUuid: 'workout-uuid-1',
+          ),
+          throwsA(isA<UnsupportedError>()),
+        );
+        return;
+      }
+
+      final routeUuid = await health.finishWorkoutRoute(
+        builderId: 'builder-123',
+        workoutUuid: 'workout-uuid-1',
+        metadata: const {'note': 'example'},
+      );
+
+      expect(routeUuid, 'route-uuid-123');
+      expect(mockChannel.lastMethod, 'finishWorkoutRoute');
+      final args = mockChannel.lastArguments as Map<String, dynamic>;
+      expect(args['builderId'], 'builder-123');
+      expect(args['workoutUUID'], 'workout-uuid-1');
+      expect(args['metadata'], {
+        'note': 'example',
+        'workout_uuid': 'workout-uuid-1',
+      });
+    });
+
+    test('discardWorkoutRoute returns true', () async {
+      if (!Platform.isIOS) {
+        await expectLater(
+          () => health.discardWorkoutRoute('builder-123'),
+          throwsA(isA<UnsupportedError>()),
+        );
+        return;
+      }
+
+      final success = await health.discardWorkoutRoute('builder-123');
+
+      expect(success, isTrue);
+      expect(mockChannel.lastMethod, 'discardWorkoutRoute');
+      final args = mockChannel.lastArguments as Map<String, dynamic>;
+      expect(args['builderId'], 'builder-123');
     });
   });
 }

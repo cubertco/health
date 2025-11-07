@@ -44,6 +44,7 @@ const List<HealthDataType> dataTypesIOS = [
   HealthDataType.WATER,
   HealthDataType.EXERCISE_TIME,
   HealthDataType.WORKOUT,
+  HealthDataType.WORKOUT_ROUTE,
   HealthDataType.HEADACHE_NOT_PRESENT,
   HealthDataType.HEADACHE_MILD,
   HealthDataType.HEADACHE_MODERATE,

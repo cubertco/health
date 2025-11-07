@@ -1544,6 +1544,96 @@ class Health {
     return await _channel.invokeMethod('writeWorkoutData', args) == true;
   }
 
+  /// Start a new workout route recording session on iOS.
+  ///
+  /// Returns a builder identifier that must be supplied in subsequent calls
+  /// to [insertWorkoutRouteData], [finishWorkoutRoute], or
+  /// [discardWorkoutRoute].
+  ///
+  /// Throws [UnsupportedError] on non-iOS platforms.
+  Future<String> startWorkoutRoute() async {
+    if (!Platform.isIOS) {
+      throw UnsupportedError('Workout route writing is supported on iOS only.');
+    }
+    final identifier = await _channel.invokeMethod<String>('startWorkoutRoute');
+    if (identifier == null) {
+      throw PlatformException(
+        code: 'ROUTE_ERROR',
+        message: 'Failed to start workout route builder.',
+      );
+    }
+    return identifier;
+  }
+
+  /// Append a batch of [locations] to an active workout route builder.
+  ///
+  /// The [builderId] must come from [startWorkoutRoute]. Locations should
+  /// be ordered by ascending timestamp to mirror HealthKit’s expectations.
+  ///
+  /// Throws [UnsupportedError] on non-iOS platforms.
+  Future<bool> insertWorkoutRouteData({
+    required String builderId,
+    required List<WorkoutRouteLocation> locations,
+  }) async {
+    if (!Platform.isIOS) {
+      throw UnsupportedError('Workout route writing is supported on iOS only.');
+    }
+    final args = <String, dynamic>{
+      'builderId': builderId,
+      'locations': locations
+          .map(_serializeWorkoutRouteLocationForNative)
+          .toList(),
+    };
+    return await _channel.invokeMethod<bool>('insertWorkoutRouteData', args) ==
+        true;
+  }
+
+  /// Finalises the workout route and associates it with an existing workout.
+  ///
+  /// Provide the [builderId] from [startWorkoutRoute], the HealthKit
+  /// [workoutUuid] (as returned from [writeWorkoutData] or another mechanism),
+  /// and optional [metadata] that will be stored on the resulting route.
+  ///
+  /// Returns the created route’s UUID string.
+  Future<String> finishWorkoutRoute({
+    required String builderId,
+    required String workoutUuid,
+    Map<String, dynamic>? metadata,
+  }) async {
+    if (!Platform.isIOS) {
+      throw UnsupportedError('Workout route writing is supported on iOS only.');
+    }
+    final args = <String, dynamic>{
+      'builderId': builderId,
+      'workoutUUID': workoutUuid,
+      if (metadata != null) 'metadata': Map<String, dynamic>.from(metadata),
+    };
+    final response = await _channel.invokeMapMethod<String, dynamic>(
+      'finishWorkoutRoute',
+      args,
+    );
+    final routeUuid = response?['uuid'] as String?;
+    if (routeUuid == null) {
+      throw PlatformException(
+        code: 'ROUTE_ERROR',
+        message: 'Workout route completion failed.',
+      );
+    }
+    return routeUuid;
+  }
+
+  /// Discards any progress for the specified workout route builder.
+  ///
+  /// Returns `true` if the builder existed and was discarded successfully.
+  Future<bool> discardWorkoutRoute(String builderId) async {
+    if (!Platform.isIOS) {
+      throw UnsupportedError('Workout route writing is supported on iOS only.');
+    }
+    final args = <String, dynamic>{'builderId': builderId};
+    return await _channel.invokeMethod<bool>('discardWorkoutRoute', args) ==
+        true;
+  }
+
   /// Check if the given [HealthWorkoutActivityType] is supported on the iOS platform
   bool _isOnIOS(HealthWorkoutActivityType type) {
     // Returns true if the type is part of the iOS set
@@ -1706,4 +1796,27 @@ class Health {
       HealthWorkoutActivityType.OTHER,
     }.contains(type);
   }
+}
+
+Map<String, dynamic> _serializeWorkoutRouteLocationForNative(
+  WorkoutRouteLocation location,
+) {
+  final map = <String, dynamic>{
+    'latitude': location.latitude,
+    'longitude': location.longitude,
+    'timestamp': location.timestamp.toUtc().millisecondsSinceEpoch,
+  };
+  void addIfNotNull(String key, Object? value) {
+    if (value != null) map[key] = value;
+  }
+
+  addIfNotNull('altitude', location.altitude);
+  addIfNotNull('horizontalAccuracy', location.horizontalAccuracy);
+  addIfNotNull('verticalAccuracy', location.verticalAccuracy);
+  addIfNotNull('speed', location.speed);
+  addIfNotNull('course', location.course);
+  addIfNotNull('speedAccuracy', location.speedAccuracy);
+  addIfNotNull('courseAccuracy', location.courseAccuracy);
+
+  return map;
 }
