@@ -66,7 +66,7 @@ object HealthConstants {
     /**
      * Maps Flutter health data type strings to their corresponding Health Connect Record classes.
      * This mapping enables dynamic type resolution for reading and writing health data.
-     * 
+     *
      * @return Map<String, KClass<out Record>> Mapping of type strings to Health Connect record classes
      */
     val mapToType: Map<String, KClass<out Record>> = hashMapOf(
@@ -107,11 +107,11 @@ object HealthConstants {
         SPEED to SpeedRecord::class,
         ACTIVITY_INTENSITY to ActivityIntensityRecord::class,
     )
-    
+
     /**
      * Maps health data types to their corresponding aggregate metric types for batch operations.
      * Used when requesting aggregated data over time periods.
-     * 
+     *
      * @return Map<String, AggregateMetric> Mapping for aggregate data queries
      */
     val mapToAggregateMetric = hashMapOf(
@@ -128,12 +128,13 @@ object HealthConstants {
         SLEEP_IN_BED to SleepSessionRecord.SLEEP_DURATION_TOTAL,
         TOTAL_CALORIES_BURNED to TotalCaloriesBurnedRecord.ENERGY_TOTAL,
         ACTIVITY_INTENSITY to ActivityIntensityRecord.INTENSITY_MINUTES_TOTAL,
+        BASAL_ENERGY_BURNED to BasalMetabolicRateRecord.BASAL_CALORIES_TOTAL,
     )
 
     /**
      * Maps integer sleep stage values to their corresponding data type strings.
      * Converts Health Connect sleep stage enumeration to Flutter-friendly string constants.
-     * 
+     *
      * @return Map<Int, String> Sleep stage integer to type string mapping
      */
     val mapSleepStageToType = hashMapOf(
@@ -150,7 +151,7 @@ object HealthConstants {
     /**
      * Maps meal type strings to Health Connect MealType enumeration values.
      * Enables conversion from Flutter meal type strings to Health Connect types.
-     * 
+     *
      * @return Map<String, MealType> Meal type string to enum mapping
      */
     val mapMealTypeToType = hashMapOf(
@@ -164,7 +165,7 @@ object HealthConstants {
     /**
      * Maps Health Connect MealType enumeration values back to Flutter string constants.
      * Used for converting Health Connect meal types to Flutter-compatible format.
-     * 
+     *
      * @return Map<MealType, String> Enum to string mapping for meal types
      */
     val mapTypeToMealType = hashMapOf(
@@ -178,7 +179,7 @@ object HealthConstants {
     /**
      * Maps workout/exercise type strings to Health Connect ExerciseSessionRecord types.
      * Comprehensive mapping of all supported exercise activities for workout tracking.
-     * 
+     *
      * @return Map<String, Int> Workout type strings to Health Connect exercise type constants
      */
     val workoutTypeMap = mapOf(
